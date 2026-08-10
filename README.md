@@ -4,7 +4,7 @@ Sticky monorepo for Matt's weekday X-bookmark tech demos.
 
 Each approved pick lands as:
 - `apps/<slug>/` — Bun/Vite (or stack-appropriate) playground
-- a branch + PR with screenshots/videos for validation
+- a branch + PR with **screenshot + video** validation of the running app
 
 **No new GitHub repo per demo.**
 
@@ -35,7 +35,7 @@ Each approved pick lands as:
 2. Implement a self-contained app: `cd apps/<slug> && bun install && bun run dev`
 3. Prefer Bun + `bunfig.toml` with `[install] minimumReleaseAge = 259200` when JS
 4. Prefer shadcn (minimalist) when UI
-5. Open **one PR**; attach screenshots/videos proving the demo runs
+5. Open **one PR**; embed/attach **at least one screenshot AND at least one short video** (screen recording) of the running app — PR is not done without both
 6. Do **not** create new repositories
 
 See [AGENTS.md](./AGENTS.md) for hard rules. Model preference for builders: **Fable 5**.
