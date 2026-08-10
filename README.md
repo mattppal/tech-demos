@@ -3,22 +3,39 @@
 Sticky monorepo for Matt's weekday X-bookmark tech demos.
 
 Each approved pick lands as:
-- `demos/<slug>/` — Bun/Vite (or stack-appropriate) playground
+- `apps/<slug>/` — Bun/Vite (or stack-appropriate) playground
 - a branch + PR with screenshots/videos for validation
 
-No new GitHub repo per demo.
+**No new GitHub repo per demo.**
+
+## Apps
+
+| Slug | Status | Notes |
+|------|--------|-------|
+| — | none yet | First picks will land under `apps/<kebab-slug>/` |
 
 ## Layout
+
 ```
-demos/
-  generative-loaders/   # example
-  img2threejs/          # optional later migration
-PLANNING.md             # how agents should add a demo
+/
+  README.md
+  AGENTS.md                 # hard rules for cloud agents
+  skills/
+    project-planning/       # planning skill (copied from mattppal/skills)
+  apps/
+    _template/              # optional Bun+Vite React-TS stub
+    <kebab-slug>/           # one folder per approved pick
+  tracking/
+    seen-bookmarks.json     # proposed / built / skipped
 ```
 
 ## Adding a demo (for cloud agents)
-1. Create `demos/<kebab-slug>/` from PLAN for that pick
-2. Root of that folder is a self-contained app (`bun install && bun run dev`)
+
+1. Follow [`skills/project-planning`](./skills/project-planning/SKILL.md) and write `apps/<kebab-slug>/PLAN.md`
+2. Implement a self-contained app: `cd apps/<slug> && bun install && bun run dev`
 3. Prefer Bun + `bunfig.toml` with `[install] minimumReleaseAge = 259200` when JS
-4. Open one PR; attach screenshots/videos proving the demo runs
-5. Do not create new repositories
+4. Prefer shadcn (minimalist) when UI
+5. Open **one PR**; attach screenshots/videos proving the demo runs
+6. Do **not** create new repositories
+
+See [AGENTS.md](./AGENTS.md) for hard rules. Model preference for builders: **Fable 5**.
