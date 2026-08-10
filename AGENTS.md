@@ -10,9 +10,13 @@ This is a sticky monorepo. Follow these rules without exception.
    [install]
    minimumReleaseAge = 259200
    ```
-5. **Open one PR per pick;** attach screenshots/videos proving the UI runs.
-6. **Model preference for builders:** Fable 5 (`claude-fable-5`).
-7. **Prefer shadcn** (minimalist) when the demo has UI.
+5. **Artifact validation (hard rule):** Every PR must embed/attach **both** of the following of the running app (`bun run dev`):
+   - at least one **screenshot**, and
+   - at least one short **video** (screen recording).
+   A PR is **not done** without both. Screenshot alone or video alone is insufficient.
+6. **Open one PR per pick.**
+7. **Model preference for builders:** Fable 5 (`claude-fable-5`).
+8. **Prefer shadcn** (minimalist) when the demo has UI.
 
 ## Template
 
