@@ -55,7 +55,9 @@ Validate with `bun test`.
 
 `scripts/generate.ts` runs every prompt against every configured model once
 via `@cursor/sdk`'s `Agent.prompt`, with `tools: []` (prose-only, no shell /
-edit / web tools) and instructions to answer with plain paragraphs:
+edit / web tools), a clean temp directory as the agent's cwd (so no workspace
+rules or AGENTS.md leak into the context), and instructions to answer with
+plain paragraphs:
 
 ```sh
 CURSOR_API_KEY=your-key bun run generate

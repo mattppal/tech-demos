@@ -7,7 +7,8 @@
  * Writes fixtures/<benchmarkId>.json in the shape the UI reads. The app never
  * calls this at runtime — fixtures are cached, hand-checked, and committed.
  */
-import { mkdir } from "node:fs/promises";
+import { mkdir, mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { Agent } from "@cursor/sdk";
@@ -55,6 +56,11 @@ async function main() {
     process.exit(1);
   }
 
+  // Agent.prompt runs a local agent harness that reads workspace context
+  // (rules, AGENTS.md, …) from its cwd. Run from an empty directory so the
+  // only input each model sees is the benchmark prompt itself.
+  const cleanRoom = await mkdtemp(path.join(tmpdir(), "writing-bench-"));
+
   const samples: BenchmarkSample[] = [];
 
   for (const model of MODELS) {
@@ -64,7 +70,7 @@ async function main() {
       try {
         const result = await Agent.prompt(
           `${INSTRUCTIONS}\n\n---\n\n${prompt.text}`,
-          { apiKey, model: { id: model.id }, tools: [] },
+          { apiKey, model: { id: model.id }, tools: [], local: { cwd: cleanRoom } },
         );
         samples.push({
           promptId: prompt.id,
