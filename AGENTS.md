@@ -25,3 +25,12 @@ Use `apps/_template/` as a starting point (Bun + Vite + React + TypeScript), or 
 ## Tracking
 
 Update `tracking/seen-bookmarks.json` when proposing, building, or skipping a bookmark pick.
+
+## Cursor Cloud specific instructions
+
+Durable, non-obvious notes for future cloud agents (the startup update script already installs `bun` and runs `bun install` for every `apps/*` that has a `package.json`).
+
+- **Runtime:** JS apps use `bun` (installed at `~/.bun/bin`, on `PATH` via `~/.bashrc`). Bun's official `bun.sh` installer is blocked by egress; the binary is fetched from GitHub Releases instead. `npm`/GitHub Releases reach the network fine.
+- **Per-app dev loop:** each app is self-contained — `cd apps/<slug> && bun install && bun run dev`. Vite dev server serves on `http://localhost:5173/` (auto-increments if the port is taken). Run it as a long-lived process (e.g. a tmux terminal), not from `install`.
+- **`apps/_template` build caveat:** `bun run dev` works, but `bun run build` (which runs `tsc -b`) fails with `TS2307: Cannot find module './index.css'` because the template ships no `vite-env.d.ts`. This is a pre-existing template gap, not an environment problem. New apps that need a passing `bun run build` should add a `src/vite-env.d.ts` containing `/// <reference types="vite/client" />`.
+- **Lockfiles:** `bun install` generates `apps/<slug>/bun.lock`, which is not covered by the template `.gitignore`; commit it with the app (don't commit the throwaway `bun.lock` under `apps/_template/`).
