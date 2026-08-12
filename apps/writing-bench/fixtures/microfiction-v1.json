@@ -1,0 +1,56 @@
+{
+  "benchmarkId": "microfiction-v1",
+  "title": "Microfiction",
+  "description": "Two constrained-form prompts. Two models, head to head. Tools disabled; single response per model.",
+  "generatedAt": "2026-08-11T09:05:00Z",
+  "prompts": [
+    {
+      "id": "m1",
+      "title": "The Floor That Wasn't There",
+      "text": "Write a story of at most 75 words that begins with the exact sentence: \"The elevator stopped on a floor that wasn't there.\""
+    },
+    {
+      "id": "m2",
+      "title": "Recipe for Nostalgia",
+      "text": "Write a recipe card for nostalgia — ingredients, then method, about 100 words. Play it completely straight, as if it were a real recipe."
+    }
+  ],
+  "models": [
+    { "id": "composer-2.5", "displayName": "Composer 2.5" },
+    { "id": "claude-fable-5", "displayName": "Fable 5" }
+  ],
+  "samples": [
+    {
+      "promptId": "m1",
+      "modelId": "composer-2.5",
+      "output": "The elevator stopped on a floor that wasn't there. The doors opened onto her grandmother's kitchen, 1987, bread rising under a towel. She could smell it. The panel said 13 in a building that skipped from 12 to 14, the way buildings pretend. She held the door-open button until her arm ached. Then she let go, and rode up to her meeting, and was, everyone agreed, distracted all day.",
+      "status": "finished",
+      "durationMs": 2140,
+      "harness": { "sdk": "@cursor/sdk", "tools": [] }
+    },
+    {
+      "promptId": "m1",
+      "modelId": "claude-fable-5",
+      "output": "The elevator stopped on a floor that wasn't there. A man got on. He was checking his watch, annoyed, ordinary. He pressed the button for her floor. They rode in silence, and only when he stepped off ahead of her — into her office, her chair, her Tuesday — did she understand the arrangement. The doors closed. The panel offered her one button now, unnumbered, warm to the touch, and patient.",
+      "status": "finished",
+      "durationMs": 2880,
+      "harness": { "sdk": "@cursor/sdk", "tools": [] }
+    },
+    {
+      "promptId": "m2",
+      "modelId": "composer-2.5",
+      "output": "NOSTALGIA\nServes: one. Keeps indefinitely; improves with age.\n\nIngredients.\nOne song, minimum ten years old, encountered by accident. A specific quality of late-afternoon light. The smell of any kitchen that is not your kitchen. One name you have not said aloud in years. Distance, to taste.\n\nMethod.\nDo not attempt deliberately; nostalgia curdles when forced. Allow the song to find you — in a store, a passing car. Fold in the light gently. When the name surfaces, do not stir. Serve immediately, alone, ideally near a window. Note: portions are larger than they appear.",
+      "status": "finished",
+      "durationMs": 2410,
+      "harness": { "sdk": "@cursor/sdk", "tools": [] }
+    },
+    {
+      "promptId": "m2",
+      "modelId": "claude-fable-5",
+      "output": "NOSTALGIA (traditional)\nPrep: none. Cook time: instantaneous. Serves: only you.\n\nIngredients.\n2 cups ordinary afternoon, at least a decade old\n1 song you did not choose\n3 tbsp summer, borrowed\nA screen door, slammed once\nThe voice of someone calling you in for dinner\nSalt\n\nMethod.\nBegin without meaning to. The afternoon should be fully ripened — it was nothing special at the time; this is essential, do not substitute an occasion. Add the song from another room. When the screen door slams, remove from heat immediately. The dish is done when your chest aches without cause. Do not garnish. Eat standing up, wherever you happen to be. Cannot be reheated, only remade.",
+      "status": "finished",
+      "durationMs": 3120,
+      "harness": { "sdk": "@cursor/sdk", "tools": [] }
+    }
+  ]
+}

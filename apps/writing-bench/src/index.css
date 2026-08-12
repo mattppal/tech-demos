@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Source Serif 4 Variable", "Source Serif 4", Georgia, serif;
+  --font-sans: "Inter Variable", "Inter", system-ui, sans-serif;
+
+  --color-paper: #fafaf7;
+  --color-ink: #363737;
+  --color-ink-muted: #8a8880;
+  --color-ink-faint: #b3b1a8;
+  --color-rule: #e6e4dc;
+  --color-accent: #c2410c;
+  --color-accent-hover: #9a3412;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Reading prose: Source Serif 4, generous measure and leading. */
+.wb-prose {
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  max-width: 68ch;
+  color: var(--color-ink);
+}
+
+.wb-prose p + p,
+.wb-prose .wb-para + .wb-para {
+  margin-top: 1em;
+}
+
+.wb-para,
+.wb-line {
+  display: block;
+}
+
+/* generative-loaders inherits the surrounding typography. */
+.wb-para .tl-copy {
+  font: inherit;
+  color: inherit;
+}
