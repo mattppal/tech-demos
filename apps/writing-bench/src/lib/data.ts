@@ -32,3 +32,24 @@ export function formatDate(iso: string): string {
 export function wordCount(text: string): number {
   return text.trim().split(/\s+/).length;
 }
+
+/**
+ * A short excerpt from one model's output for a prompt, used to tease the
+ * spread on the index. Rotates through models by prompt position so the
+ * table of contents quotes different voices.
+ */
+export function teaserFor(
+  run: BenchmarkRun,
+  promptId: string,
+  promptIndex: number,
+): { text: string; modelName: string } | undefined {
+  const samples = run.samples.filter(
+    (s) => s.promptId === promptId && s.status === "finished",
+  );
+  if (samples.length === 0) return undefined;
+  const sample = samples[promptIndex % samples.length];
+  const model = run.models.find((m) => m.id === sample.modelId);
+  const flat = sample.output.replace(/\s+/g, " ").trim();
+  const cut = flat.length <= 150 ? flat : `${flat.slice(0, 150).replace(/\s+\S*$/, "")}\u2026`;
+  return { text: cut, modelName: model?.displayName ?? sample.modelId };
+}

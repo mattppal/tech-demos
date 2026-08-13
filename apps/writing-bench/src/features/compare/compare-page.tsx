@@ -75,17 +75,19 @@ function SplitView({ run, prompt, columns, replayToken, onReplay }: ViewProps) {
     gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`,
   };
   return (
-    <div className="mx-auto w-full max-w-[90rem] px-8">
-      <header className="sticky top-0 z-10 -mx-8 border-b border-rule bg-paper px-8 pt-5">
+    <div className="mx-auto w-full max-w-[96rem] px-10">
+      <header className="wb-double-rule sticky top-0 z-10 -mx-10 bg-paper/95 px-10 pt-4 backdrop-blur-sm">
         <PromptHeader run={run} prompt={prompt} onReplay={onReplay} />
-        <div className="mt-4 grid" style={gridStyle}>
+        <div className="mt-3 grid" style={gridStyle}>
           {columns.map(({ model, sample }, i) => (
-            <ColumnLabel
+            <div
               key={model.id}
-              model={model}
-              sample={sample}
-              className={i > 0 ? "border-l border-rule" : ""}
-            />
+              className={i > 0 ? "border-l border-rule pl-10 pr-10" : "pr-10"}
+            >
+              <div className="mx-auto w-full max-w-[66ch] font-serif text-[1.0625rem]">
+                <ColumnLabel model={model} sample={sample} />
+              </div>
+            </div>
           ))}
         </div>
       </header>
@@ -93,13 +95,13 @@ function SplitView({ run, prompt, columns, replayToken, onReplay }: ViewProps) {
         {columns.map(({ model, sample }, i) => (
           <article
             key={model.id}
-            className={`py-8 pr-8 ${i > 0 ? "border-l border-rule pl-8" : "pr-8"}`}
+            className={`py-10 ${i > 0 ? "border-l border-rule pl-10 pr-10" : "pr-10"}`}
           >
             <SampleProse output={sample.output} replayToken={replayToken} />
           </article>
         ))}
       </div>
-      <footer className="border-t border-rule py-10" />
+      <footer className="py-6" />
     </div>
   );
 }
@@ -108,9 +110,9 @@ function SplitView({ run, prompt, columns, replayToken, onReplay }: ViewProps) {
 function TabbedView({ run, prompt, columns, replayToken, onReplay }: ViewProps) {
   return (
     <Tabs defaultValue={columns[0]?.model.id} className="mx-auto w-full max-w-[46rem] px-6 sm:px-8">
-      <header className="sticky top-0 z-10 -mx-6 border-b border-rule bg-paper px-6 pt-5 pb-4 sm:-mx-8 sm:px-8">
+      <header className="wb-double-rule sticky top-0 z-10 -mx-6 bg-paper/95 px-6 pt-4 pb-3.5 backdrop-blur-sm sm:-mx-8 sm:px-8">
         <PromptHeader run={run} prompt={prompt} onReplay={onReplay} />
-        <TabsList className="mt-4">
+        <TabsList className="mt-3">
           {columns.map(({ model }) => (
             <TabsTrigger key={model.id} value={model.id}>
               {model.displayName}
@@ -123,8 +125,10 @@ function TabbedView({ run, prompt, columns, replayToken, onReplay }: ViewProps) 
       {columns.map(({ model, sample }) => (
         <TabsContent key={model.id} value={model.id}>
           <article className="py-8">
-            <ColumnLabel model={model} sample={sample} bare />
-            <div className="mt-4">
+            <div className="mx-auto w-full max-w-[66ch] font-serif text-[1.0625rem]">
+              <ColumnLabel model={model} sample={sample} bordered />
+            </div>
+            <div className="mt-5">
               <SampleProse output={sample.output} replayToken={replayToken} />
             </div>
           </article>
@@ -139,16 +143,16 @@ function TabbedView({ run, prompt, columns, replayToken, onReplay }: ViewProps) 
                 key={model.id}
                 className={i % 2 === 1 ? "border-l border-rule pl-5" : "pr-5"}
               >
-                <ColumnLabel model={model} sample={sample} bare />
-                <div className="mt-4 text-[0.9375rem]">
-                  <SampleProse output={sample.output} replayToken={replayToken} />
+                <ColumnLabel model={model} sample={sample} bordered />
+                <div className="mt-5">
+                  <SampleProse output={sample.output} replayToken={replayToken} compact />
                 </div>
               </article>
             ))}
           </div>
         </TabsContent>
       )}
-      <footer className="border-t border-rule py-10" />
+      <footer className="py-6" />
     </Tabs>
   );
 }
@@ -165,28 +169,28 @@ function PromptHeader({
   const [expanded, setExpanded] = useState(false);
   return (
     <div>
-      <div className="flex items-center justify-between gap-4">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1.5 font-sans text-xs font-medium text-ink-muted transition-colors hover:text-ink"
-        >
-          <ArrowLeft className="size-3.5" aria-hidden />
-          {runTitle(run)}
-        </Link>
-        <Button onClick={onReplay}>
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1 font-sans text-[0.6875rem] font-medium text-ink-muted transition-colors duration-150 hover:text-ink"
+      >
+        <ArrowLeft className="size-3" aria-hidden />
+        {runTitle(run)}
+      </Link>
+      <div className="mt-0.5 flex items-baseline justify-between gap-6">
+        <h1 className="font-serif text-[1.4375rem] leading-tight font-semibold tracking-tight">
+          {prompt.title}
+        </h1>
+        <Button onClick={onReplay} className="shrink-0 self-center">
           <RotateCcw aria-hidden />
           Replay
         </Button>
       </div>
-      <h1 className="mt-2 font-serif text-[1.5rem] leading-tight font-semibold tracking-tight">
-        {prompt.title}
-      </h1>
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
         title={expanded ? "Collapse prompt" : "Show full prompt"}
-        className={`mt-1 block max-w-[68ch] cursor-pointer text-left font-serif text-[0.9375rem] leading-relaxed text-ink-muted ${
-          expanded ? "" : "line-clamp-2"
+        className={`mt-1 max-w-[72ch] cursor-pointer text-left font-serif text-[0.875rem] leading-relaxed text-ink-muted italic ${
+          expanded ? "block" : "line-clamp-1"
         }`}
       >
         {prompt.text}
@@ -195,27 +199,26 @@ function PromptHeader({
   );
 }
 
+/** Editorial byline: serif italic model name, quiet sans meta. */
 function ColumnLabel({
   model,
   sample,
-  className = "",
-  bare = false,
+  bordered = false,
 }: {
   model: BenchmarkModel;
   sample: BenchmarkSample;
-  className?: string;
-  bare?: boolean;
+  bordered?: boolean;
 }) {
   return (
     <div
-      className={`flex items-baseline justify-between gap-3 font-sans ${
-        bare ? "border-b border-rule pb-3" : "py-3 [&:not(:first-child)]:pl-8 [&:not(:last-child)]:pr-8"
-      } ${className}`}
+      className={`flex items-baseline justify-between gap-3 py-2.5 ${
+        bordered ? "border-b border-rule" : ""
+      }`}
     >
-      <span className="text-[0.6875rem] font-semibold tracking-[0.14em] uppercase">
+      <span className="font-serif text-[0.9375rem] font-medium italic">
         {model.displayName}
       </span>
-      <span className="text-[0.6875rem] tabular-nums text-ink-muted">
+      <span className="font-sans text-[0.625rem] tabular-nums tracking-[0.02em] text-ink-faint">
         {sample.status === "finished"
           ? `${wordCount(sample.output)} words · ${formatDuration(sample.durationMs)}`
           : sample.status}
