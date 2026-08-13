@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Restore plain :hover (v3 behavior): Tailwind v4 gates hover: utilities
+   behind `@media (hover: hover)`, which never matches on some pointers
+   (e.g. virtual displays) and would leave links with no hover state. */
+@custom-variant hover (&:hover);
+
 @theme {
   --font-serif: "Source Serif 4 Variable", "Source Serif 4", Georgia, serif;
   --font-sans: "Inter Variable", "Inter", system-ui, sans-serif;
