@@ -12,7 +12,7 @@ Each approved pick lands as:
 
 | Slug | Status | Notes |
 |------|--------|-------|
-| — | none yet | First picks will land under `apps/<kebab-slug>/` |
+| [`shader-lab`](./apps/shader-lab/) | built | Preset swapper for basement.studio Shader Lab compositions (`@basementstudio/shader-lab`, WebGPU) |
 
 ## Layout
 
