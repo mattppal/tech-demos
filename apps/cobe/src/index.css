@@ -1,0 +1,117 @@
+:root {
+  --bg: #160b22;
+  --fg: #ece3f5;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  transition: background 0.5s ease, color 0.5s ease;
+  overflow: hidden;
+}
+
+.globe-wrap {
+  position: fixed;
+  inset: 0;
+}
+
+.globe-canvas {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.chrome {
+  position: fixed;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.chrome-top {
+  top: 2rem;
+}
+
+.chrome-bottom {
+  bottom: 2rem;
+  flex-direction: row;
+  gap: 0.5rem;
+}
+
+.chrome h1 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+}
+
+.chrome p {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.55;
+}
+
+.preset {
+  pointer-events: auto;
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--fg) 25%, transparent);
+  background: transparent;
+  color: var(--fg);
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.2s ease, border-color 0.2s ease;
+}
+
+.preset:hover {
+  opacity: 0.85;
+}
+
+.preset.active {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--fg) 70%, transparent);
+}
+
+/* City labels pinned to markers via cobe v2's CSS anchor positioning.
+   The --cobe-visible-* variable exists only while the marker faces the
+   viewer, so opacity resolves to 1 when visible and falls back to 0. */
+.city-label {
+  display: none;
+}
+
+@supports (position-anchor: --x) {
+  .city-label {
+    display: block;
+    position: fixed;
+    z-index: 1;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    pointer-events: none;
+    transform: translateX(-50%);
+    left: anchor(center);
+    bottom: calc(anchor(top) + 0.6rem);
+    transition: opacity 0.25s ease;
+  }
+
+  .city-label-sf {
+    position-anchor: --cobe-sf;
+    opacity: var(--cobe-visible-sf, 0);
+  }
+
+  .city-label-nyc {
+    position-anchor: --cobe-nyc;
+    opacity: var(--cobe-visible-nyc, 0);
+  }
+}
