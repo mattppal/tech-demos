@@ -1,0 +1,9 @@
+{
+  "name": "tech-demos",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun run scripts/build-all.ts",
+    "preview": "bun x wrangler@4 pages dev dist"
+  }
+}
