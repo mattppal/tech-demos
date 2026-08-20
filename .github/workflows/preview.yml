@@ -1,0 +1,93 @@
+# Builds every app under apps/<slug>/ into one static tree and deploys it to
+# a single Cloudflare Pages project (`tech-demos`, see wrangler.jsonc).
+# PRs get a preview deployment + a comment with per-app URLs; pushes to main
+# deploy production. Requires two repo Actions secrets:
+#   CLOUDFLARE_API_TOKEN  (Account > Cloudflare Pages > Edit)
+#   CLOUDFLARE_ACCOUNT_ID
+# See README.md "Preview deploys" for one-time setup.
+name: preview
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: preview-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HAS_CF_SECRETS: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Build all apps into dist/
+        run: bun run scripts/build-all.ts
+
+      - name: Warn if Cloudflare secrets are missing
+        if: env.HAS_CF_SECRETS != 'true'
+        run: echo "::warning::CLOUDFLARE_API_TOKEN and/or CLOUDFLARE_ACCOUNT_ID repo secrets are not set. Built dist/ but skipped the deploy. See README.md 'Preview deploys'."
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        if: env.HAS_CF_SECRETS == 'true'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          # Project name and output dir come from wrangler.jsonc.
+          command: pages deploy --branch=${{ github.head_ref || 'main' }}
+
+      - name: Comment preview URLs on PR
+        if: github.event_name == 'pull_request' && steps.deploy.outcome == 'success'
+        uses: actions/github-script@v7
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+          ALIAS_URL: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
+        with:
+          script: |
+            const fs = require("fs");
+            const manifest = JSON.parse(fs.readFileSync("dist/manifest.json", "utf8"));
+            const deploymentUrl = process.env.DEPLOYMENT_URL || "";
+            const aliasUrl = process.env.ALIAS_URL || "";
+            const base = (aliasUrl || deploymentUrl).replace(/\/+$/, "");
+            const marker = "<!-- tech-demos-preview-comment -->";
+
+            const bullets = manifest.apps
+              .map((a) => `- [\`/${a.slug}/\`](${base}/${a.slug}/)` + (a.description ? ` — ${a.description}` : ""))
+              .join("\n");
+
+            const headSha = context.payload.pull_request.head.sha;
+            const body = [
+              marker,
+              "### Cloudflare Pages preview",
+              "",
+              `**Deployment:** ${deploymentUrl}`,
+              aliasUrl && aliasUrl !== deploymentUrl ? `**Branch alias:** ${aliasUrl}` : null,
+              "",
+              manifest.apps.length
+                ? `Apps on this deployment:\n\n${bullets}`
+                : "_No apps were built on this branch._",
+              "",
+              `<sub>Commit ${headSha.slice(0, 7)} · updated ${new Date().toISOString()}</sub>`,
+            ].filter((line) => line !== null).join("\n");
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.rest.issues.listComments({ owner, repo, issue_number, per_page: 100 });
+            const existing = comments.data.find((c) => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
