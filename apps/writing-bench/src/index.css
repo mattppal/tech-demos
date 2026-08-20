@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/* Restore plain :hover (v3 behavior): Tailwind v4 gates hover: utilities
+   behind `@media (hover: hover)`, which never matches on some pointers
+   (e.g. virtual displays) and would leave links with no hover state. */
+@custom-variant hover (&:hover);
+
+@theme {
+  --font-serif: "Source Serif 4 Variable", "Source Serif 4", Georgia, serif;
+  --font-sans: "Inter Variable", "Inter", system-ui, sans-serif;
+
+  --color-paper: #fafaf7;
+  --color-ink: #363737;
+  --color-ink-muted: #8a8880;
+  --color-ink-faint: #b3b1a8;
+  --color-rule: #e6e4dc;
+  --color-accent: #c2410c;
+  --color-accent-hover: #9a3412;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+}
+
+/* Classic editorial double rule: hairline, 2px of air, hairline. */
+.wb-double-rule {
+  border-bottom: 1px solid var(--color-rule);
+  box-shadow: 0 3px 0 -2px var(--color-rule);
+}
+
+/* Reading prose: Source Serif 4, generous measure and leading. */
+.wb-prose {
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
+  line-height: 1.68;
+  max-width: 66ch;
+  margin-inline: auto;
+  color: var(--color-ink);
+  font-variant-numeric: oldstyle-nums;
+  text-wrap: pretty;
+}
+
+/* Denser cut for the two-up Split tab on small screens. */
+.wb-prose-sm {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.wb-prose p + p,
+.wb-prose .wb-para + .wb-para {
+  margin-top: 1em;
+}
+
+.wb-para,
+.wb-line {
+  display: block;
+}
+
+/* generative-loaders must inherit the surrounding typography: the library
+   root sets `font-family: var(--tl-font)` (a sans stack), which would
+   otherwise override the serif prose. */
+.wb-prose .tl-loader {
+  --tl-font: inherit;
+  font-family: inherit;
+  color: inherit;
+}

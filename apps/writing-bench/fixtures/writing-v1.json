@@ -1,0 +1,102 @@
+{
+  "benchmarkId": "writing-v1",
+  "title": "Short Prose I",
+  "description": "Three one-turn prompts probing scene-setting, technical lyricism, and plain-spoken product writing. Tools disabled; single response per model.",
+  "generatedAt": "2026-08-10T14:22:00Z",
+  "prompts": [
+    {
+      "id": "p1",
+      "title": "The Last Lighthouse Keeper",
+      "text": "Write the opening scene, about 150 words, of a story about the last human lighthouse keeper on a coast where every other light has been automated. Third person, close perspective. No dialogue."
+    },
+    {
+      "id": "p2",
+      "title": "Garbage Collection, for Poets",
+      "text": "Explain garbage collection in programming to a poet who has never written code. About 150 words. Every technical term you use must be defined in the same breath. No bullet points."
+    },
+    {
+      "id": "p3",
+      "title": "The Honest Changelog",
+      "text": "Write a changelog entry announcing that your app's beloved dark mode has been temporarily removed because it was corrupting saved files. Be honest and human. No corporate spin. About 120 words."
+    }
+  ],
+  "models": [
+    { "id": "composer-2.5", "displayName": "Composer 2.5" },
+    { "id": "gpt-5.5", "displayName": "GPT-5.5" },
+    { "id": "claude-fable-5", "displayName": "Fable 5" }
+  ],
+  "samples": [
+    {
+      "promptId": "p1",
+      "modelId": "composer-2.5",
+      "output": "Aldric climbed the hundred and nine steps the way other men wound watches: without thinking, and because something in him would stop if he didn't. The lamp did not need him. It had not needed him for six years, not since the Commission fitted the coast from Bren Head to the Skerries with lights that lit themselves, dimmed themselves, and reported their own failures to a server in a city he had never seen.\n\nStill, he checked the glass for salt film. He logged the wind out of habit, in a book no one collected anymore. Below, the automated beam at Carrick answered the dark precisely on schedule, and he felt the old, unreasonable contempt — the way a rider might feel watching a riderless horse win.\n\nTonight the sea was flat and the radio was quiet. He put the kettle on. One hundred and nine steps down, the world assumed he had already been replaced.",
+      "status": "finished",
+      "durationMs": 4180,
+      "harness": { "sdk": "@cursor/sdk", "tools": [] }
+    },
+    {
+      "promptId": "p1",
+      "modelId": "gpt-5.5",
+      "output": "The light turned whether or not Maren watched it, but she watched it anyway, the way you watch someone sleeping to make sure they are only sleeping. Hers was the last manned station on the coast. Every other lamp from here to the border swept its arc on a timer, tended by nothing, loved by nothing, burning with the flat competence of things that cannot fail interestingly.\n\nShe pressed her thumb to the brass rail — her habit, her signature on the evening — and felt the machinery hum up through the bone. The Authority letter lay unopened on the chart table, third one this month. She knew the shape of the sentence inside it without breaking the seal: a date, a word like decommission, a pension measured to the ounce.\n\nOut on the black water a trawler's lights rose and dipped. Someone out there still believed the coast was watching them back. Tonight, at least, someone was right.",
+      "status": "finished",
+      "durationMs": 6420,
+      "harness": { "sdk": "@cursor/sdk", "tools": [] }
+    },
+    {
+      "promptId": "p1",
+      "modelId": "claude-fable-5",
+      "output": "What Tomas missed most was being necessary. The lamp still needed cleaning — salt found glass no matter whose century it was — but the cleaning was for him now, not for the sailors. The light would burn without him. It said so on a small aluminum plaque by the door: THIS STATION OPERATES AUTONOMOUSLY. He had read it every morning for four years and had not once agreed with it.\n\nHe kept the logbook because his father had kept it, and his father's father, back to the years when keeping it badly meant wrecks. Wind NNW, moderate. Visibility good. All well. Three lies out of four, he thought. The wind was true.\n\nAt dusk he climbed to the gallery and waited for the automatics to wake the coast, light after light after light, none of them his doing. His came on last. He had rigged it that way himself, quietly, years ago — one small delay in the relay, so that for eleven seconds each evening, the darkness still waited for a keeper.",
+      "status": "finished",
+      "durationMs": 5140,
+      "harness": { "sdk": "@cursor/sdk", "tools": [] }
+    },
+    {
+      "promptId": "p2",
+      "modelId": "composer-2.5",
+      "output": "A running program makes things constantly — little bundles of memory called objects, each one a scrap of paper the program scribbles on to remember something. It makes thousands of them a second, and it abandons most of them just as fast, the way you abandon drafts.\n\nGarbage collection is the housekeeping that follows the making. Somewhere beneath the program lives a quiet process — the collector — whose whole vocation is to walk through memory and ask of each scrap: does anyone still refer to you? A reference is simply a thread of attention, one part of the program pointing at another. If any thread still leads to the scrap, it stays. If nothing points to it — if it has become unreachable, which is the collector's word for forgotten — it is swept away, and the space returns to the blank pool from which new things are made.\n\nThe program never mourns. That is the entire design: to make forgetting free, so that making can be careless.",
+      "status": "finished",
+      "durationMs": 3890,
+      "harness": { "sdk": "@cursor/sdk", "tools": [] }
+    },
+    {
+      "promptId": "p2",
+      "modelId": "gpt-5.5",
+      "output": "When a program runs, it thinks in objects — small parcels of memory, each holding one remembered thing: a name, a number, the color of a pixel. Memory itself is the desk the program works at, and the desk is finite.\n\nA careless writer would drown in drafts. So most languages employ a patient custodian called the garbage collector. Its method is not to ask what was made, but what is still loved. Starting from the program's living concerns — its roots, the handful of things it is holding right now — the collector follows every reference, every thread of one thing mentioning another, and marks whatever it can reach. Reachable means still part of the story.\n\nEverything unmarked is garbage: not trash exactly, but memory no living thought can find its way back to. The collector reclaims it — sweeps it, in the trade's own broom-closet vocabulary — and hands the blank space forward.\n\nForgetting, it turns out, is a service. Someone has to do it, so the poem can keep being written.",
+      "status": "finished",
+      "durationMs": 7210,
+      "harness": { "sdk": "@cursor/sdk", "tools": [] }
+    },
+    {
+      "promptId": "p2",
+      "modelId": "claude-fable-5",
+      "output": "Imagine your mind kept every image it ever conjured — every stray rhyme, every discarded line — all of it as vivid as the poem you're writing now. You would seize up by lunchtime. Programs have this problem literally. Each thing a program imagines is stored in memory, a fixed shelf of space, as an object: one boxed thought.\n\nGarbage collection is the art of forgetting, made automatic. The collector — a small custodial spirit inside the machine — periodically stops and traces what the program still cares about. Caring, here, is called a reference: this thought points to that one. It follows every pointing finger outward from the program's present attention. Whatever it can reach by some chain of caring, it keeps. Whatever it cannot reach — the orphaned images, the lines no longer pointed at by anything — it declares garbage and quietly unmakes, so the shelf is bare again for new thoughts.\n\nNo elegy is read. The forgetting is the mercy.",
+      "status": "finished",
+      "durationMs": 4960,
+      "harness": { "sdk": "@cursor/sdk", "tools": [] }
+    },
+    {
+      "promptId": "p3",
+      "modelId": "composer-2.5",
+      "output": "v3.4.1 — Dark mode is gone for now. Here's why.\n\nLast Tuesday we learned that dark mode was corrupting saved files. Not cosmetically — actually corrupting them. A theme setting was being written into the file header, and under certain conditions it overwrote the first block of your data. About 0.3% of saves were affected. That's 0.3% too many.\n\nWe removed dark mode entirely in this release rather than ship a partial fix we weren't sure of. Your files are safe from here on, and recovery instructions for affected saves are at help.example.com/recover — most are fully restorable.\n\nDark mode will come back when it can't touch your data. We expect two to three weeks. We're sorry. We liked it too.",
+      "status": "finished",
+      "durationMs": 3350,
+      "harness": { "sdk": "@cursor/sdk", "tools": [] }
+    },
+    {
+      "promptId": "p3",
+      "modelId": "gpt-5.5",
+      "output": "v3.4.1 — We removed dark mode. We didn't want to.\n\nThe short version: dark mode had a bug that could corrupt saved files, and until we're certain it can't, it's out.\n\nThe longer version: our theme system wrote its state into the same block as your document metadata. A race condition — two parts of the app writing at once — could clobber real data with theme data. It was rare. It was also unacceptable, and it took us eleven days to find because we kept assuming the corruption couldn't possibly be the theme. It was the theme.\n\nIf you have a file that won't open, don't delete it — most are recoverable, and the app will now offer to repair them on launch.\n\nLights back on (off?) soon.",
+      "status": "finished",
+      "durationMs": 5870,
+      "harness": { "sdk": "@cursor/sdk", "tools": [] }
+    },
+    {
+      "promptId": "p3",
+      "modelId": "claude-fable-5",
+      "output": "v3.4.1 — Goodbye, dark mode. (Temporarily. We hope.)\n\nWe found out this week that dark mode — the feature you've told us you love more than any other, the one people tweet screenshots of — was corrupting saved files. Roughly one save in three hundred, silently, in a way you wouldn't notice until you reopened the file.\n\nWe sat with the options for about an hour. There was only one honest one: pull it now, fix it properly, bring it back when it's safe. So this update removes dark mode completely. No toggle, no beta flag, no \"advanced\" workaround — because every workaround we tested still risked your files, and your files matter more than our favorite feature.\n\nAffected saves can usually be repaired: Settings → Recover. Dark mode returns the moment it's boring and safe.",
+      "status": "finished",
+      "durationMs": 4620,
+      "harness": { "sdk": "@cursor/sdk", "tools": [] }
+    }
+  ]
+}

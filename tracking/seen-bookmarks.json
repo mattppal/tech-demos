@@ -1,5 +1,12 @@
 {
   "proposed": [],
-  "built": [],
+  "built": [
+    {
+      "slug": "writing-bench",
+      "title": "Writing Bench — editorial side-by-side model writing benchmarks",
+      "source": "direct user request (not a bookmark pick)",
+      "date": "2026-08-12"
+    }
+  ],
   "skipped": []
 }
