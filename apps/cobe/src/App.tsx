@@ -125,8 +125,8 @@ export default function App() {
       arcWidth: 0.4,
       arcHeight: 0.4,
       markers: [
-        { location: SF, size: 0.08, id: "sf" },
-        { location: NYC, size: 0.08, id: "nyc" },
+        { location: SF, size: 0.05, id: "sf" },
+        { location: NYC, size: 0.05, id: "nyc" },
       ],
       arcs: [{ from: SF, to: NYC }],
     });

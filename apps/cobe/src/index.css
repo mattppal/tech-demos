@@ -43,6 +43,7 @@ body {
 .chrome-bottom {
   bottom: 2rem;
   flex-direction: row;
+  justify-content: center;
   gap: 0.5rem;
 }
 
