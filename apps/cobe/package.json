@@ -1,5 +1,6 @@
 {
   "name": "cobe-demo",
+  "description": "Draggable 5KB WebGL globe (cobe v2) with SF/NYC markers, one arc, and three color presets",
   "private": true,
   "version": "0.0.0",
   "type": "module",
