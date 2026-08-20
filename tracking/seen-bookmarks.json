@@ -1,5 +1,14 @@
 {
   "proposed": [],
-  "built": [],
+  "built": [
+    {
+      "slug": "cobe",
+      "title": "cobe — 5KB WebGL globe (Shu Ding)",
+      "url": "https://github.com/shuding/cobe",
+      "app": "apps/cobe",
+      "date": "2026-08-20",
+      "note": "JS lib demo (drag + markers + arc); the bookmarked Swift port is out of scope"
+    }
+  ],
   "skipped": []
 }
