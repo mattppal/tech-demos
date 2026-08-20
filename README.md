@@ -45,16 +45,15 @@ Pushes to `main` deploy production (`tech-demos.pages.dev`).
 
 ### One-time setup
 
-1. Create the Pages project (either works):
-   - `bunx wrangler@4 pages project create tech-demos --production-branch=main`, or
-   - let the first `wrangler pages deploy` from your machine create it interactively.
-2. Add two GitHub Actions secrets (repo **Settings → Secrets and variables → Actions**):
+1. Add two GitHub Actions secrets (repo **Settings → Secrets and variables → Actions**):
    - `CLOUDFLARE_API_TOKEN` — API token with **Account → Cloudflare Pages → Edit**
      permission (create at dash.cloudflare.com → My Profile → API Tokens).
    - `CLOUDFLARE_ACCOUNT_ID` — from the Cloudflare dashboard sidebar or `wrangler whoami`.
 
-Until the secrets exist, the workflow still builds `dist/` and just skips the deploy
-with a warning. No GitHub PAT is used or needed — PR comments use `GITHUB_TOKEN`.
+The workflow creates the `tech-demos` Pages project automatically on its first run
+(`wrangler pages project create`, idempotent). Until the secrets exist, the workflow
+still builds `dist/` and just skips the deploy with a warning. No GitHub PAT is used
+or needed — PR comments use `GITHUB_TOKEN`.
 
 ### How it works
 
