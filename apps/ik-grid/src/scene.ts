@@ -17,8 +17,8 @@ export const DENSITIES: Record<Density, DensityConfig> = {
 };
 
 const BG = "#f6f2e8";
-const GRID_LINE = "rgba(62, 52, 30, 0.16)";
-const GRID_DOT = "rgba(62, 52, 30, 0.32)";
+const GRID_LINE = "rgba(62, 52, 30, 0.22)";
+const GRID_DOT = "rgba(62, 52, 30, 0.4)";
 const HANDLE_STROKE = "rgba(62, 52, 30, 0.55)";
 const HANDLE_HIT = 16;
 const MIN_CELL = 24;
@@ -43,7 +43,6 @@ export class Scene {
   private hoverCorner: Corner | null = null;
   private raf = 0;
   private lastNow = 0;
-  private paletteCursor = 0;
 
   constructor(canvas: HTMLCanvasElement, density: Density) {
     this.canvas = canvas;
@@ -148,17 +147,24 @@ export class Scene {
     }
 
     const shuffled = this.allStances().sort(() => Math.random() - 0.5);
+    // A figure is ~2 cells tall, so breathing room means no occupied vertex
+    // within one column/row of the stance's own two vertices.
+    const roomy = (st: { i: number; j: number }) => {
+      if (!this.isStanceFree(st.i, st.j)) return false;
+      for (let j = st.j - 1; j <= st.j + 1; j++) {
+        for (let i = st.i - 1; i <= st.i + 2; i++) {
+          if (this.occupied.has(Scene.vKey(i, j))) return false;
+        }
+      }
+      return true;
+    };
     while (this.figures.length < count) {
-      // First pass prefers breathing room (no occupied vertex adjacent).
-      const spaced = shuffled.find(
-        (st) =>
-          this.isStanceFree(st.i, st.j) &&
-          this.isStanceFree(st.i - 1, st.j) &&
-          this.isStanceFree(st.i + 1, st.j),
-      );
+      const spaced = shuffled.find(roomy);
       const st = spaced ?? shuffled.find((s) => this.isStanceFree(s.i, s.j));
       if (!st) break;
-      const color = PALETTE[this.paletteCursor++ % PALETTE.length];
+      const used = new Map<string, number>();
+      for (const f of this.figures) used.set(f.color, (used.get(f.color) ?? 0) + 1);
+      const color = [...PALETTE].sort((a, b) => (used.get(a) ?? 0) - (used.get(b) ?? 0))[0];
       const fig = new Figure(color, st.i, st.j, this.grid);
       fig.wanderAt = performance.now() / 1000 + 1 + Math.random() * 4;
       this.figures.push(fig);
