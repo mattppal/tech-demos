@@ -15,13 +15,23 @@ copied from any clone.
 - Full-viewport canvas with quiet chrome (tiny title/hint, three density presets).
 - One rectangular grid; drag its corners to resize, drag its body to move.
   The motion is the demo.
-- 4–8 procedurally drawn stick figures (Keith Haring vibe: thick round strokes,
-  bold colors, round heads). Each stands on two adjacent grid vertices.
-- Two-bone analytic IK per leg (hip→knee→ankle) and per arm; short spine + head
-  follow the hips. Feet chase their vertices with animated steps — never teleport.
-- Idle motion: breathing, weight shift, arm sway, and occasional wandering to a
-  free neighboring stance so a recording is never a still frame.
-- Density presets (sparse / cozy / packed) change column/row count and figure count.
+- 4–8 procedurally drawn characters, each *living in its own cell* like an
+  apartment: feet own the cell's two bottom corner vertices, no two figures
+  share a column, and horizontally adjacent figures sit on different rows so
+  no vertex is ever shared. The crowd stays readable at every density.
+- Distinct characters, not identical sticks: per-figure genome for proportions
+  (leg/torso/head/shoulder ratios as cell fractions), filled torso with waist
+  curve, hair/hat variants (crop, beanie, bun, antenna), eyes with gaze,
+  optional darker "pants", and a resting pose flavor — stand, floor-sit,
+  wall-lean with a bracing hand, or flamingo one-leg-up.
+- Two-bone analytic IK per leg and arm; limbs are sized from the current cell
+  geometry, so resizing the grid stretches figures smoothly instead of
+  breaking reach. Feet chase their vertices with animated steps — never teleport;
+  flavor poses collapse to a plain stance while a figure is walking.
+- Idle motion: breathing, sway, arm sway, and occasional hops to a free
+  neighboring row/column that preserve the one-per-column invariant.
+- Density presets (sparse / cozy / packed) change how many cells are occupied
+  — still one person per cell.
 
 ## Explicitly out of scope
 

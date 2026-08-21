@@ -12,6 +12,66 @@ export const PALETTE = [
   "#d9a410",
 ];
 
+/** Darken a #rrggbb color for hair/hats/pants. */
+function shade(hex: string, f: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.round(((n >> 16) & 0xff) * f);
+  const g = Math.round(((n >> 8) & 0xff) * f);
+  const b = Math.round((n & 0xff) * f);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function rand(lo: number, hi: number): number {
+  return lo + Math.random() * (hi - lo);
+}
+
+function pick<T>(arr: readonly T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+type Hair = "none" | "crop" | "beanie" | "bun" | "antenna";
+type Flavor = "stand" | "sit" | "lean" | "flamingo";
+
+/**
+ * Per-figure genome: proportions are fractions of the *cell*, so every
+ * character keeps filling its apartment as the grid is dragged around.
+ */
+interface Dna {
+  hipF: number; // standing hip height / cellH (long vs short legs)
+  torsoF: number; // torso length / cellH
+  headF: number; // head radius / cellH
+  shoulderF: number; // shoulder half-width / min(cellW, cellH)
+  hipWF: number; // hip half-width / min(cellW, cellH)
+  bendF: number; // leg slack: straight-legged vs bendy
+  armF: number;
+  hangSpread: number; // how far hanging hands sit from the body
+  hair: Hair;
+  flavor: Flavor;
+  side: 1 | -1; // lean/flamingo/wave side
+  kneeIn: boolean; // knock-kneed instead of knees-out
+  akimbo: boolean; // resting hands on hips instead of hanging
+  pants: boolean; // darker legs
+}
+
+function rollDna(): Dna {
+  return {
+    hipF: rand(0.26, 0.6),
+    torsoF: rand(0.2, 0.38),
+    headF: rand(0.08, 0.16),
+    shoulderF: rand(0.09, 0.24),
+    hipWF: rand(0.07, 0.13),
+    bendF: rand(1.02, 1.3),
+    armF: rand(0.85, 1.15),
+    hangSpread: rand(0, 0.12),
+    hair: pick(["none", "crop", "crop", "beanie", "bun", "antenna"] as const),
+    flavor: pick(["stand", "stand", "sit", "sit", "lean", "flamingo"] as const),
+    side: Math.random() < 0.5 ? 1 : -1,
+    kneeIn: Math.random() < 0.25,
+    akimbo: Math.random() < 0.3,
+    pants: Math.random() < 0.35,
+  };
+}
+
 interface Step {
   fromX: number;
   fromY: number;
@@ -20,54 +80,57 @@ interface Step {
   lift: number;
 }
 
-export interface Foot {
-  /** Claimed grid vertex. */
-  vi: number;
-  vj: number;
-  /** Current drawn position; only moves via animated steps, never teleports. */
+interface Foot {
   x: number;
   y: number;
   step: Step | null;
 }
 
 interface Pose {
-  s: number;
-  hip: Vec;
-  chest: Vec;
-  neck: Vec;
+  hipL: Vec;
+  hipR: Vec;
+  shoulderL: Vec;
+  shoulderR: Vec;
   head: Vec;
   headR: number;
   knees: [Vec, Vec];
   elbows: [Vec, Vec];
   hands: [Vec, Vec];
+  displayFeet: [Vec, Vec];
+  legW: number;
+  look: number; // -1..1 gaze/lean direction
 }
-
-/** Bone lengths as fractions of the figure scale `s`. */
-const LEG_UPPER = 0.66;
-const LEG_LOWER = 0.62;
-const ARM_UPPER = 0.42;
-const ARM_LOWER = 0.4;
 
 export class Figure {
   readonly color: string;
-  readonly phase: number;
-  readonly feet: [Foot, Foot];
+  readonly dna: Dna;
+  /** The cell this figure lives in; feet own its two bottom corners. */
+  ci: number;
+  cj: number;
   /** Scene-managed idle-wander schedule (absolute seconds). */
   wanderAt = 0;
 
+  private readonly phase: number;
+  private readonly feet: [Foot, Foot];
   private handL: Vec | null = null;
   private handR: Vec | null = null;
   private lean = 0;
+  private flavorK = 0; // 0 = plain stand (while moving), 1 = full flavor pose
+  private settledFor = 0;
   private stepCooldown = 0;
   private settleT = 0;
+  private waveAt = 2 + Math.random() * 8;
   private pose: Pose | null = null;
 
-  constructor(color: string, i: number, j: number, grid: GridModel) {
+  constructor(color: string, ci: number, cj: number, grid: GridModel) {
     this.color = color;
+    this.dna = rollDna();
     this.phase = Math.random() * Math.PI * 2;
+    this.ci = ci;
+    this.cj = cj;
     this.feet = [
-      { vi: i, vj: j, x: grid.vertexX(i), y: grid.vertexY(j), step: null },
-      { vi: i + 1, vj: j, x: grid.vertexX(i + 1), y: grid.vertexY(j), step: null },
+      { x: grid.vertexX(ci), y: grid.vertexY(cj + 1), step: null },
+      { x: grid.vertexX(ci + 1), y: grid.vertexY(cj + 1), step: null },
     ];
   }
 
@@ -75,12 +138,8 @@ export class Figure {
     return this.feet[0].step !== null || this.feet[1].step !== null;
   }
 
-  /** Point feet at a new stance; they will walk there via animated steps. */
-  setStance(i: number, j: number): void {
-    this.feet[0].vi = i;
-    this.feet[0].vj = j;
-    this.feet[1].vi = i + 1;
-    this.feet[1].vj = j;
+  private footTarget(k: 0 | 1, grid: GridModel): Vec {
+    return { x: grid.vertexX(this.ci + k), y: grid.vertexY(this.cj + 1) };
   }
 
   update(dt: number, time: number, grid: GridModel): void {
@@ -89,14 +148,14 @@ export class Figure {
   }
 
   private updateFeet(dt: number, grid: GridModel): void {
-    const cellMin = Math.min(grid.cellW, grid.cellH);
+    const targets = [this.footTarget(0, grid), this.footTarget(1, grid)];
 
-    for (const foot of this.feet) {
+    for (let k = 0; k < 2; k++) {
+      const foot = this.feet[k];
       const step = foot.step;
       if (!step) continue;
       // Target is re-read live so a mid-step foot tracks a moving vertex.
-      const tx = grid.vertexX(foot.vi);
-      const ty = grid.vertexY(foot.vj);
+      const { x: tx, y: ty } = targets[k];
       step.t += dt / step.dur;
       if (step.t >= 1) {
         foot.x = tx;
@@ -117,8 +176,8 @@ export class Figure {
     this.stepCooldown -= dt;
     if (this.stepCooldown > 0) return;
 
-    const errs = this.feet.map((f) =>
-      Math.hypot(grid.vertexX(f.vi) - f.x, grid.vertexY(f.vj) - f.y),
+    const errs = [0, 1].map((k) =>
+      Math.hypot(targets[k].x - this.feet[k].x, targets[k].y - this.feet[k].y),
     );
     const idx = errs[0] >= errs[1] ? 0 : 1;
     const err = errs[idx];
@@ -126,130 +185,325 @@ export class Figure {
     // Feet stay planted while the grid slides beneath them, then catch up in
     // quick alternating steps. A slow "settle" step cleans up sub-threshold
     // drift once the grid stops moving.
+    const cellMin = Math.min(grid.cellW, grid.cellH);
     const threshold = Math.max(6, cellMin * 0.14);
     this.settleT = err > 1 ? this.settleT + dt : 0;
     if (err <= threshold && this.settleT < 0.7) return;
 
     const foot = this.feet[idx];
-    const s = this.scale(grid);
     foot.step = {
       fromX: foot.x,
       fromY: foot.y,
       t: 0,
       dur: clamp(0.14 + err * 0.0012, 0.16, 0.34),
-      lift: clamp(err * 0.35, 0.16 * s, 0.9 * s),
+      lift: clamp(err * 0.35, grid.cellH * 0.08, grid.cellH * 0.5),
     };
     this.stepCooldown = 0.05;
     this.settleT = 0;
   }
 
-  private scale(grid: GridModel): number {
-    return clamp(Math.sqrt(grid.cellW * grid.cellH) * 0.9, 26, 110);
-  }
-
   private updatePose(dt: number, time: number, grid: GridModel): void {
-    const s = this.scale(grid);
+    const dna = this.dna;
+    const cw = grid.cellW;
+    const ch = grid.cellH;
+    const sMin = Math.min(cw, ch);
     const [fl, fr] = this.feet;
     const midX = (fl.x + fr.x) / 2;
-    const midY = (fl.y + fr.y) / 2;
+    const groundY = (fl.y + fr.y) / 2;
 
-    const breathe = Math.sin(time * 1.6 + this.phase) * 0.025 * s;
-    const sway = Math.sin(time * 0.7 + this.phase) * 0.05 * s;
+    // Flavor poses fade in once the figure has been standing still a moment
+    // and collapse quickly while it is walking somewhere.
+    const stepping = this.feet.find((f) => f.step !== null) ?? null;
+    this.settledFor = stepping ? 0 : this.settledFor + dt;
+    const flavorTarget = this.settledFor > 0.5 ? 1 : 0;
+    this.flavorK = lerp(this.flavorK, flavorTarget, 1 - Math.exp(-dt * 4));
+    const fk = dna.flavor === "stand" ? 0 : this.flavorK;
 
-    // Lean into the step that is currently in flight.
-    const stepping = this.feet.find((f) => f.step !== null);
+    const breathe = Math.sin(time * 1.5 + this.phase) * 0.015 * ch;
+    const sway = Math.sin(time * 0.7 + this.phase) * 0.02 * cw;
+
     const leanTarget = stepping
-      ? clamp((grid.vertexX(stepping.vi) - midX) * 0.1, -0.16 * s, 0.16 * s)
-      : 0;
+      ? clamp((grid.vertexX(this.ci) + cw / 2 - midX) * 0.1, -0.12 * cw, 0.12 * cw)
+      : dna.flavor === "lean"
+        ? dna.side * 0.1 * cw * fk
+        : 0;
     this.lean = lerp(this.lean, leanTarget, 1 - Math.exp(-dt * 8));
 
-    const hipX = midX + sway + this.lean * 0.5;
-    // Keep the hip within leg reach of both planted feet; when cells get very
-    // wide the hip sinks toward the ground and the figure does the splits.
-    const legReach = (LEG_UPPER + LEG_LOWER) * s * 0.99;
-    let hipH = s + breathe;
-    for (const f of this.feet) {
-      const dx = hipX - f.x;
-      const lim = Math.sqrt(Math.max(legReach * legReach - dx * dx, (0.22 * s) ** 2));
-      hipH = Math.min(hipH, lim);
+    // Body heights are cell fractions; crouch if the apartment ceiling is low.
+    const headR = clamp(dna.headF * ch, 3, 0.24 * cw);
+    let hipH = dna.hipF * ch;
+    let torsoLen = dna.torsoF * ch;
+    const flavorHip =
+      dna.flavor === "sit" ? 0.18 : dna.flavor === "lean" ? 0.82 : dna.flavor === "flamingo" ? 1.06 : 1;
+    hipH *= lerp(1, flavorHip, fk);
+    const avail = ch * 0.96 - 2.2 * headR;
+    if (hipH + torsoLen > avail) {
+      hipH = Math.max(avail - torsoLen, 0.16 * ch);
+      torsoLen = clamp(avail - hipH, torsoLen * 0.5, torsoLen);
     }
-    const hip = { x: hipX, y: midY - hipH };
+    hipH += breathe;
 
-    const chest = { x: hipX + this.lean * 0.8 + sway * 0.3, y: hip.y - 0.52 * s + breathe * 0.5 };
-    const headR = 0.17 * s;
-    const neck = { x: chest.x + this.lean * 0.3, y: chest.y - 0.1 * s };
-    const head = { x: neck.x + this.lean * 0.3, y: neck.y - 0.06 * s - headR };
+    const hipHalf = dna.hipWF * sMin;
+    const shoulderHalf = dna.shoulderF * sMin;
+    const hipX = midX + sway + this.lean;
+    const hipY = groundY - Math.max(hipH, 0.08 * ch);
+    const hipL = { x: hipX - hipHalf, y: hipY };
+    const hipR = { x: hipX + hipHalf, y: hipY };
+    const shoulderY = hipY - torsoLen;
+    const shoulderX = hipX + this.lean * 0.6;
+    const shoulderL = { x: shoulderX - shoulderHalf, y: shoulderY };
+    const shoulderR = { x: shoulderX + shoulderHalf, y: shoulderY };
 
+    const look = clamp(this.lean / (0.08 * cw + 1e-6), -1, 1);
+    const head = {
+      x: shoulderX + this.lean * 0.5,
+      y: shoulderY - 0.05 * ch - headR + breathe * 0.5,
+    };
+
+    // Legs are sized to the standing geometry of the current cell, so
+    // resizing the grid stretches limbs smoothly instead of breaking IK.
+    const nominal = Math.hypot(cw / 2 - hipHalf, dna.hipF * ch) * dna.bendF;
+    const l1 = nominal * 0.52;
+    const l2 = nominal * 0.48;
+
+    // Flamingo: one foot tucks up against the other knee while settled. Only
+    // the drawn position moves; the planted position keeps owning its corner.
+    const tuckIdx = dna.side === -1 ? 0 : 1;
+    const tuckK = dna.flavor === "flamingo" ? fk : 0;
+    const displayFeet: [Vec, Vec] = [
+      { x: fl.x, y: fl.y },
+      { x: fr.x, y: fr.y },
+    ];
+    if (tuckK > 0.01) {
+      const tuck = { x: hipX + dna.side * hipHalf * 0.6, y: hipY + hipH * 0.42 };
+      displayFeet[tuckIdx] = {
+        x: lerp(displayFeet[tuckIdx].x, tuck.x, tuckK),
+        y: lerp(displayFeet[tuckIdx].y, tuck.y, tuckK),
+      };
+    }
+
+    // Knee fold direction is part of the silhouette: knees-out by default,
+    // knock-kneed for some, and knees-up when sitting on the floor.
+    const foldFlip = dna.kneeIn || (dna.flavor === "sit" && fk > 0.5);
+    const bendL: 1 | -1 = foldFlip ? -1 : 1;
+    const bendR: 1 | -1 = foldFlip ? 1 : -1;
+    const tuckScale = (k: number) => (tuckK > 0.01 && k === tuckIdx ? 1 - 0.5 * tuckK : 1);
     const knees: [Vec, Vec] = [
-      solveTwoBone(hip.x, hip.y, fl.x, fl.y, LEG_UPPER * s, LEG_LOWER * s, 1),
-      solveTwoBone(hip.x, hip.y, fr.x, fr.y, LEG_UPPER * s, LEG_LOWER * s, -1),
+      solveTwoBone(hipL.x, hipL.y, displayFeet[0].x, displayFeet[0].y, l1 * tuckScale(0), l2 * tuckScale(0), bendL),
+      solveTwoBone(hipR.x, hipR.y, displayFeet[1].x, displayFeet[1].y, l1 * tuckScale(1), l2 * tuckScale(1), bendR),
     ];
 
-    // Hands hang and sway at rest, flare out for balance while stepping.
-    const armSway = Math.sin(time * 1.1 + this.phase * 1.7) * 0.06 * s;
-    const balance = stepping ? 1 : 0;
-    const handTargetL = {
-      x: chest.x - lerp(0.3 * s, 0.6 * s, balance) + armSway,
-      y: chest.y + lerp(0.62 * s, 0.12 * s, balance),
-    };
-    const handTargetR = {
-      x: chest.x + lerp(0.3 * s, 0.6 * s, balance) + armSway,
-      y: chest.y + lerp(0.62 * s, 0.12 * s, balance),
-    };
+    // Hands: balance while stepping; otherwise flavor/habit decides, with an
+    // occasional overhead wave so the crowd feels alive.
+    const armLen = (torsoLen * 0.75 + hipH * 0.25) * dna.armF;
+    const armSway = Math.sin(time * 1.1 + this.phase * 1.7) * 0.03 * cw;
+    const waving =
+      !stepping && dna.flavor !== "sit" && dna.flavor !== "lean" && time > this.waveAt && time < this.waveAt + 1.4;
+    if (time > this.waveAt + 1.4) this.waveAt = time + 6 + Math.random() * 9;
+    let targetL: Vec;
+    let targetR: Vec;
+    if (stepping) {
+      targetL = { x: shoulderL.x - 0.28 * cw, y: shoulderY + 0.08 * ch };
+      targetR = { x: shoulderR.x + 0.28 * cw, y: shoulderY + 0.08 * ch };
+    } else if (waving) {
+      const wig = Math.sin(time * 9 + this.phase) * headR * 0.6;
+      const up = { x: head.x + dna.side * headR * 1.8 + wig, y: head.y - headR * 1.7 };
+      const rest = {
+        x: shoulderX - dna.side * (shoulderHalf + dna.hangSpread * 0.2 * cw),
+        y: shoulderY + armLen * 0.95,
+      };
+      targetL = dna.side > 0 ? rest : up;
+      targetR = dna.side > 0 ? up : rest;
+    } else if (dna.flavor === "sit" && fk > 0.5) {
+      targetL = { x: knees[0].x, y: knees[0].y };
+      targetR = { x: knees[1].x, y: knees[1].y };
+    } else if (dna.flavor === "lean" && fk > 0.5) {
+      // Brace one hand against the figure's own cell wall.
+      const wallX = grid.vertexX(this.ci + (dna.side > 0 ? 1 : 0));
+      const brace = { x: wallX, y: shoulderY + 0.15 * ch };
+      const hang = { x: shoulderX - dna.side * 0.14 * cw + armSway, y: hipY + 0.1 * ch };
+      targetL = dna.side > 0 ? hang : brace;
+      targetR = dna.side > 0 ? brace : hang;
+    } else if (dna.akimbo) {
+      targetL = { x: hipL.x - hipHalf * 0.6, y: hipY };
+      targetR = { x: hipR.x + hipHalf * 0.6, y: hipY };
+    } else {
+      // Arms hang beside the torso, not out in a starfish.
+      const spread = dna.hangSpread * 0.2 * cw;
+      targetL = { x: shoulderL.x - spread + armSway, y: shoulderY + armLen * 0.95 };
+      targetR = { x: shoulderR.x + spread + armSway, y: shoulderY + armLen * 0.95 };
+    }
     const k = 1 - Math.exp(-dt * 9);
-    this.handL = this.handL ?? handTargetL;
-    this.handR = this.handR ?? handTargetR;
-    this.handL = { x: lerp(this.handL.x, handTargetL.x, k), y: lerp(this.handL.y, handTargetL.y, k) };
-    this.handR = { x: lerp(this.handR.x, handTargetR.x, k), y: lerp(this.handR.y, handTargetR.y, k) };
+    this.handL = this.handL ?? targetL;
+    this.handR = this.handR ?? targetR;
+    this.handL = { x: lerp(this.handL.x, targetL.x, k), y: lerp(this.handL.y, targetL.y, k) };
+    this.handR = { x: lerp(this.handR.x, targetR.x, k), y: lerp(this.handR.y, targetR.y, k) };
 
+    // Elbows fold down-and-out when hands rest on the knees, not up in spikes.
+    const armFlip = dna.flavor === "sit" && fk > 0.5 && !stepping && !waving;
+    const armBendL: 1 | -1 = armFlip ? -1 : 1;
+    const armBendR: 1 | -1 = armFlip ? 1 : -1;
     const elbows: [Vec, Vec] = [
-      solveTwoBone(chest.x, chest.y, this.handL.x, this.handL.y, ARM_UPPER * s, ARM_LOWER * s, 1),
-      solveTwoBone(chest.x, chest.y, this.handR.x, this.handR.y, ARM_UPPER * s, ARM_LOWER * s, -1),
+      solveTwoBone(shoulderL.x, shoulderL.y, this.handL.x, this.handL.y, armLen * 0.52, armLen * 0.48, armBendL),
+      solveTwoBone(shoulderR.x, shoulderR.y, this.handR.x, this.handR.y, armLen * 0.52, armLen * 0.48, armBendR),
     ];
 
     this.pose = {
-      s,
-      hip,
-      chest,
-      neck,
+      hipL,
+      hipR,
+      shoulderL,
+      shoulderR,
       head,
       headR,
       knees,
       elbows,
       hands: [this.handL, this.handR],
+      displayFeet,
+      legW: Math.max(2.5, hipHalf * 0.7),
+      look,
     };
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
     const pose = this.pose;
     if (!pose) return;
-    const { s, hip, chest, neck, head, headR, knees, elbows, hands } = pose;
-    const [fl, fr] = this.feet;
+    const { hipL, hipR, shoulderL, shoulderR, head, headR, knees, elbows, hands, displayFeet, legW, look } = pose;
+    const dark = shade(this.color, 0.62);
 
-    ctx.strokeStyle = this.color;
-    ctx.fillStyle = this.color;
-    ctx.lineWidth = Math.max(2.5, 0.11 * s);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
+    // Legs (optionally "pants" in the darker shade).
+    ctx.strokeStyle = this.dna.pants ? dark : this.color;
+    ctx.lineWidth = legW;
     ctx.beginPath();
-    ctx.moveTo(fl.x, fl.y);
+    ctx.moveTo(displayFeet[0].x, displayFeet[0].y);
     ctx.lineTo(knees[0].x, knees[0].y);
-    ctx.lineTo(hip.x, hip.y);
+    ctx.lineTo(hipL.x, hipL.y);
+    ctx.moveTo(displayFeet[1].x, displayFeet[1].y);
     ctx.lineTo(knees[1].x, knees[1].y);
-    ctx.lineTo(fr.x, fr.y);
-    ctx.moveTo(hip.x, hip.y);
-    ctx.lineTo(chest.x, chest.y);
-    ctx.lineTo(neck.x, neck.y);
-    ctx.moveTo(hands[0].x, hands[0].y);
-    ctx.lineTo(elbows[0].x, elbows[0].y);
-    ctx.lineTo(chest.x, chest.y);
-    ctx.lineTo(elbows[1].x, elbows[1].y);
-    ctx.lineTo(hands[1].x, hands[1].y);
+    ctx.lineTo(hipR.x, hipR.y);
     ctx.stroke();
 
+    // Filled torso: hips up to shoulders with a waist curve.
+    const waistOut = (shoulderR.x - shoulderL.x) * 0.08;
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.moveTo(hipL.x, hipL.y);
+    ctx.quadraticCurveTo(
+      (hipL.x + shoulderL.x) / 2 - waistOut,
+      (hipL.y + shoulderL.y) / 2,
+      shoulderL.x,
+      shoulderL.y,
+    );
+    ctx.quadraticCurveTo(
+      (shoulderL.x + shoulderR.x) / 2,
+      shoulderL.y - (shoulderR.x - shoulderL.x) * 0.3,
+      shoulderR.x,
+      shoulderR.y,
+    );
+    ctx.quadraticCurveTo(
+      (hipR.x + shoulderR.x) / 2 + waistOut,
+      (hipR.y + shoulderR.y) / 2,
+      hipR.x,
+      hipR.y,
+    );
+    ctx.closePath();
+    ctx.fill();
+    // Rounded hip line so legs join a body, not a rectangle edge.
+    ctx.beginPath();
+    ctx.ellipse(
+      (hipL.x + hipR.x) / 2,
+      hipL.y,
+      Math.max(1, (hipR.x - hipL.x) / 2),
+      legW * 0.8,
+      0,
+      0,
+      Math.PI * 2,
+    );
+    ctx.fill();
+
+    // Arms over the torso.
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = legW * 0.8;
+    ctx.beginPath();
+    ctx.moveTo(hands[0].x, hands[0].y);
+    ctx.lineTo(elbows[0].x, elbows[0].y);
+    ctx.lineTo(shoulderL.x, shoulderL.y);
+    ctx.moveTo(hands[1].x, hands[1].y);
+    ctx.lineTo(elbows[1].x, elbows[1].y);
+    ctx.lineTo(shoulderR.x, shoulderR.y);
+    ctx.stroke();
+
+    // Head.
+    ctx.fillStyle = this.color;
     ctx.beginPath();
     ctx.arc(head.x, head.y, headR, 0, Math.PI * 2);
     ctx.fill();
+
+    this.drawHair(ctx, head, headR, dark);
+
+    // Eyes, if the head is big enough to carry them.
+    if (headR > 4) {
+      const eyeR = headR * 0.22;
+      const ey = head.y - headR * 0.08;
+      for (const side of [-1, 1]) {
+        const ex = head.x + side * headR * 0.38 + look * headR * 0.12;
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(ex, ey, eyeR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#26200f";
+        ctx.beginPath();
+        ctx.arc(ex + look * eyeR * 0.4, ey, eyeR * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  private drawHair(ctx: CanvasRenderingContext2D, head: { x: number; y: number }, headR: number, dark: string): void {
+    ctx.fillStyle = dark;
+    ctx.strokeStyle = dark;
+    switch (this.dna.hair) {
+      case "none":
+        return;
+      case "crop":
+        ctx.beginPath();
+        ctx.arc(head.x, head.y - headR * 0.12, headR * 1.02, Math.PI * 1.05, Math.PI * 1.95);
+        ctx.closePath();
+        ctx.fill();
+        return;
+      case "beanie":
+        ctx.beginPath();
+        ctx.arc(head.x, head.y - headR * 0.1, headR * 1.06, Math.PI, Math.PI * 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillRect(head.x - headR * 1.06, head.y - headR * 0.28, headR * 2.12, headR * 0.24);
+        return;
+      case "bun":
+        ctx.beginPath();
+        ctx.arc(head.x, head.y - headR * 0.12, headR * 1.02, Math.PI * 1.1, Math.PI * 1.9);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(head.x, head.y - headR * 1.25, headR * 0.34, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      case "antenna": {
+        ctx.lineWidth = Math.max(1.5, headR * 0.14);
+        ctx.beginPath();
+        ctx.moveTo(head.x, head.y - headR);
+        ctx.lineTo(head.x, head.y - headR * 1.6);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(head.x, head.y - headR * 1.75, headR * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+      default: {
+        const _exhaustive: never = this.dna.hair;
+        return _exhaustive;
+      }
+    }
   }
 }

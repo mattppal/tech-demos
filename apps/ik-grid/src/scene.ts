@@ -11,9 +11,9 @@ interface DensityConfig {
 }
 
 export const DENSITIES: Record<Density, DensityConfig> = {
-  sparse: { cols: 4, rows: 3, figures: 4 },
+  sparse: { cols: 5, rows: 3, figures: 4 },
   cozy: { cols: 6, rows: 4, figures: 6 },
-  packed: { cols: 9, rows: 6, figures: 8 },
+  packed: { cols: 9, rows: 5, figures: 8 },
 };
 
 const BG = "#f6f2e8";
@@ -31,13 +31,21 @@ type Drag =
   | { kind: "corner"; corner: Corner }
   | { kind: "move"; offsetX: number; offsetY: number };
 
+function shuffled<T>(arr: T[]): T[] {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 export class Scene {
   readonly grid: GridModel;
 
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
   private readonly figures: Figure[] = [];
-  private readonly occupied = new Set<string>();
   private readonly resizeObserver: ResizeObserver;
   private drag: Drag | null = null;
   private hoverCorner: Corner | null = null;
@@ -88,107 +96,81 @@ export class Scene {
     this.populate(cfg.figures);
   }
 
-  // ----- figures & stances ------------------------------------------------
+  // ----- placement ----------------------------------------------------------
+  //
+  // Invariants (this is what keeps the crowd readable):
+  // - every figure lives in exactly one cell and its feet own that cell's two
+  //   bottom corner vertices;
+  // - no two figures ever share a column, so feet can never collapse onto the
+  //   same vertical line while chasing a dragged grid;
+  // - figures in horizontally adjacent columns sit on different rows, so no
+  //   grid vertex is ever shared between two figures.
 
-  private static vKey(i: number, j: number): string {
-    return `${i},${j}`;
-  }
-
-  private isStanceFree(i: number, j: number, ignore?: Figure): boolean {
-    if (i < 0 || i + 1 > this.grid.cols || j < 0 || j > this.grid.rows) return false;
-    const own = new Set(
-      ignore ? ignore.feet.map((f) => Scene.vKey(f.vi, f.vj)) : [],
-    );
-    for (const key of [Scene.vKey(i, j), Scene.vKey(i + 1, j)]) {
-      if (this.occupied.has(key) && !own.has(key)) return false;
-    }
-    return true;
-  }
-
-  private claimStance(fig: Figure, i: number, j: number): void {
-    for (const f of fig.feet) this.occupied.delete(Scene.vKey(f.vi, f.vj));
-    fig.setStance(i, j);
-    this.occupied.add(Scene.vKey(i, j));
-    this.occupied.add(Scene.vKey(i + 1, j));
-  }
-
-  private allStances(): { i: number; j: number }[] {
-    const out: { i: number; j: number }[] = [];
-    for (let j = 0; j <= this.grid.rows; j++) {
-      for (let i = 0; i < this.grid.cols; i++) out.push({ i, j });
-    }
-    return out;
-  }
-
-  private nearestFreeStance(pi: number, pj: number, ignore?: Figure): { i: number; j: number } | null {
-    let best: { i: number; j: number } | null = null;
-    let bestD = Infinity;
-    for (const st of this.allStances()) {
-      if (!this.isStanceFree(st.i, st.j, ignore)) continue;
-      const d = Math.abs(st.i - pi) + Math.abs(st.j - pj);
-      if (d < bestD) {
-        bestD = d;
-        best = st;
-      }
-    }
-    return best;
-  }
-
-  /** Adjust the cast to `count`, re-seating everyone on the (possibly new) grid. */
+  /** Re-seat the cast (grid may have changed shape underneath them). */
   private populate(count: number): void {
-    this.occupied.clear();
-    this.figures.length = Math.min(this.figures.length, count);
+    const g = this.grid;
+    const seats = Math.min(count, g.cols);
+    this.figures.length = Math.min(this.figures.length, seats);
 
-    for (const fig of this.figures) {
-      const pi = clamp(fig.feet[0].vi, 0, this.grid.cols - 1);
-      const pj = clamp(fig.feet[0].vj, 0, this.grid.rows);
-      const st = this.nearestFreeStance(pi, pj);
-      if (st) this.claimStance(fig, st.i, st.j);
+    const columns = shuffled([...Array(g.cols).keys()])
+      .slice(0, seats)
+      .sort((a, b) => a - b);
+
+    const rows: number[] = [];
+    for (let idx = 0; idx < columns.length; idx++) {
+      let r = Math.floor(Math.random() * g.rows);
+      const adjacentToPrev = idx > 0 && columns[idx] - columns[idx - 1] === 1;
+      if (adjacentToPrev && g.rows > 1) {
+        while (r === rows[idx - 1]) r = Math.floor(Math.random() * g.rows);
+      }
+      rows.push(r);
     }
 
-    const shuffled = this.allStances().sort(() => Math.random() - 0.5);
-    // A figure is ~2 cells tall, so breathing room means no occupied vertex
-    // within one column/row of the stance's own two vertices.
-    const roomy = (st: { i: number; j: number }) => {
-      if (!this.isStanceFree(st.i, st.j)) return false;
-      for (let j = st.j - 1; j <= st.j + 1; j++) {
-        for (let i = st.i - 1; i <= st.i + 2; i++) {
-          if (this.occupied.has(Scene.vKey(i, j))) return false;
-        }
+    // Hand columns out left-to-right in the figures' current order so nobody
+    // has to walk across the whole grid on a preset change.
+    const cast = [...this.figures].sort((a, b) => a.ci - b.ci);
+    for (let idx = 0; idx < columns.length; idx++) {
+      const fig = cast[idx];
+      if (fig) {
+        fig.ci = columns[idx];
+        fig.cj = rows[idx];
+      } else {
+        const used = new Map<string, number>();
+        for (const f of this.figures) used.set(f.color, (used.get(f.color) ?? 0) + 1);
+        const color = [...PALETTE].sort((a, b) => (used.get(a) ?? 0) - (used.get(b) ?? 0))[0];
+        const newcomer = new Figure(color, columns[idx], rows[idx], this.grid);
+        newcomer.wanderAt = performance.now() / 1000 + 1 + Math.random() * 4;
+        this.figures.push(newcomer);
       }
-      return true;
-    };
-    while (this.figures.length < count) {
-      const spaced = shuffled.find(roomy);
-      const st = spaced ?? shuffled.find((s) => this.isStanceFree(s.i, s.j));
-      if (!st) break;
-      const used = new Map<string, number>();
-      for (const f of this.figures) used.set(f.color, (used.get(f.color) ?? 0) + 1);
-      const color = [...PALETTE].sort((a, b) => (used.get(a) ?? 0) - (used.get(b) ?? 0))[0];
-      const fig = new Figure(color, st.i, st.j, this.grid);
-      fig.wanderAt = performance.now() / 1000 + 1 + Math.random() * 4;
-      this.figures.push(fig);
-      this.claimStance(fig, st.i, st.j);
     }
   }
 
   private maybeWander(fig: Figure, time: number): void {
     if (time < fig.wanderAt || fig.isStepping() || this.drag) return;
-    const shifts = [
-      { di: -1, dj: 0 },
-      { di: 1, dj: 0 },
-      { di: 0, dj: -1 },
-      { di: 0, dj: 1 },
-    ].sort(() => Math.random() - 0.5);
-    const i = fig.feet[0].vi;
-    const j = fig.feet[0].vj;
-    for (const { di, dj } of shifts) {
-      if (this.isStanceFree(i + di, j + dj, fig)) {
-        this.claimStance(fig, i + di, j + dj);
-        break;
-      }
+    fig.wanderAt = time + 3 + Math.random() * 5;
+
+    const g = this.grid;
+    const others = this.figures.filter((f) => f !== fig);
+    const options: { ci: number; cj: number }[] = [];
+
+    for (const dj of [-1, 1]) {
+      const cj = fig.cj + dj;
+      if (cj < 0 || cj >= g.rows) continue;
+      if (others.some((f) => Math.abs(f.ci - fig.ci) === 1 && f.cj === cj)) continue;
+      options.push({ ci: fig.ci, cj });
     }
-    fig.wanderAt = time + 2 + Math.random() * 5;
+    for (const di of [-1, 1]) {
+      const ci = fig.ci + di;
+      if (ci < 0 || ci >= g.cols) continue;
+      if (others.some((f) => f.ci === ci)) continue;
+      if (others.some((f) => Math.abs(f.ci - ci) === 1 && f.cj === fig.cj)) continue;
+      options.push({ ci, cj: fig.cj });
+    }
+
+    if (options.length === 0) return;
+    const target = options[Math.floor(Math.random() * options.length)];
+    fig.ci = target.ci;
+    fig.cj = target.cj;
   }
 
   // ----- canvas & rect ----------------------------------------------------
@@ -346,7 +328,8 @@ export class Scene {
       }
     }
 
-    for (const fig of this.figures) fig.draw(ctx);
+    // Painter's order: figures on lower rows draw over the ones above them.
+    for (const fig of [...this.figures].sort((a, b) => a.cj - b.cj)) fig.draw(ctx);
 
     for (const c of CORNERS) {
       const { x, y } = g.corner(c);
