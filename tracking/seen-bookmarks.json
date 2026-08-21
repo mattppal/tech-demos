@@ -1,5 +1,13 @@
 {
   "proposed": [],
-  "built": [],
+  "built": [
+    {
+      "url": "https://x.com/measure_plan/status/2077380797464559769",
+      "slug": "ik-grid",
+      "title": "Inverse-kinematics stick figures on a resizable grid",
+      "credit": "@measure_plan (X), kiel.d.m (Instagram original)",
+      "builtAt": "2026-08-21"
+    }
+  ],
   "skipped": []
 }
