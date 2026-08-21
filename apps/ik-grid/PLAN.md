@@ -39,9 +39,10 @@ copied from any clone.
 - **Canvas 2D, React as shell only** — a few hundred strokes per frame; no need
   for WebGL or a render library.
 - **In-app two-bone analytic IK (~30 lines)** — researched small 2D IK npm
-  packages (fullik, ikts, fabrik ports); all are 3D-oriented, unmaintained, or
-  larger than the math itself. Law-of-cosines two-bone solve is the smallest
-  thing that looks right.
+  packages: `ikts` is 2D-capable but ~400KB and stale since 2022, Fullik is
+  Three.js-oriented and untyped, `inverse-kinematics` is gradient-descent
+  rather than analytic. Law-of-cosines two-bone solve is the smallest thing
+  that looks right.
 - **`bunfig.toml` with `[install] minimumReleaseAge = 259200`** — house rule,
   copied before any install.
 
