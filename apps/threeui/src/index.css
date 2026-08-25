@@ -1,0 +1,250 @@
+:root {
+  --intl-orange: #c0362c;
+  font-family:
+    "Helvetica Neue",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #14181c;
+}
+
+.stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: var(--ink);
+}
+
+/* Per-theme chrome + wash variables */
+.stage[data-theme="fog"] {
+  --ink: #2e3740;
+  --ink-dim: rgba(46, 55, 64, 0.6);
+  --accent: var(--intl-orange);
+  --panel: rgba(236, 240, 243, 0.55);
+  --panel-line: rgba(46, 55, 64, 0.18);
+  --wash:
+    linear-gradient(180deg, rgba(214, 222, 228, 0.5) 0%, rgba(214, 222, 228, 0) 40%, rgba(190, 200, 208, 0.35) 100%);
+}
+
+.stage[data-theme="golden"] {
+  --ink: #f6e8d6;
+  --ink-dim: rgba(246, 232, 214, 0.62);
+  --accent: #ff7a48;
+  --panel: rgba(38, 20, 12, 0.42);
+  --panel-line: rgba(246, 232, 214, 0.22);
+  --wash:
+    linear-gradient(180deg, rgba(192, 54, 44, 0.16) 0%, rgba(214, 106, 44, 0.08) 45%, rgba(24, 10, 6, 0.45) 100%);
+}
+
+.stage[data-theme="night"] {
+  --ink: #cfd9e4;
+  --ink-dim: rgba(207, 217, 228, 0.55);
+  --accent: #e8a13a;
+  --panel: rgba(8, 14, 22, 0.5);
+  --panel-line: rgba(207, 217, 228, 0.18);
+  --wash:
+    linear-gradient(180deg, rgba(6, 12, 22, 0.35) 0%, rgba(10, 20, 34, 0.12) 45%, rgba(4, 8, 16, 0.55) 100%);
+}
+
+.hero-layer {
+  position: absolute;
+  inset: 0;
+  animation: hero-in 900ms ease-out both;
+}
+
+.hero-layer > * {
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes hero-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--wash);
+  transition: background 600ms ease;
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 120% 90% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.22) 100%);
+}
+
+/* ---- chrome ---- */
+
+.chrome {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding: 1.6rem 1.9rem;
+  z-index: 2;
+}
+
+.chrome.top {
+  top: 0;
+}
+
+.chrome.bottom {
+  bottom: 0;
+  align-items: flex-end;
+}
+
+.wordmark .rule {
+  display: block;
+  width: 2.6rem;
+  height: 3px;
+  background: var(--accent);
+  margin-bottom: 0.7rem;
+  transition: background 600ms ease;
+}
+
+.wordmark h1 {
+  margin: 0;
+  font-size: 1.9rem;
+  font-weight: 650;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.wordmark p {
+  margin: 0.45rem 0 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.credit {
+  font-size: 0.72rem;
+  line-height: 1.7;
+  color: var(--ink-dim);
+  max-width: 22rem;
+}
+
+.credit p {
+  margin: 0;
+}
+
+.credit a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--panel-line);
+}
+
+.credit a:hover {
+  border-bottom-color: var(--accent);
+}
+
+.mono {
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.55rem;
+}
+
+/* ---- segmented control ---- */
+
+.seg {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.seg-legend {
+  font-size: 0.6rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.seg-buttons {
+  display: flex;
+  border: 1px solid var(--panel-line);
+  border-radius: 999px;
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  overflow: hidden;
+  transition:
+    background 600ms ease,
+    border-color 600ms ease;
+}
+
+.seg-buttons button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink-dim);
+  font: inherit;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.48rem 0.95rem;
+  cursor: pointer;
+  transition:
+    color 250ms ease,
+    background 250ms ease;
+}
+
+.seg-buttons button:hover {
+  color: var(--ink);
+}
+
+.seg-buttons button.on {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 999px;
+}
+
+@media (max-width: 760px) {
+  .chrome {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.1rem 1.2rem;
+  }
+
+  .chrome.bottom {
+    align-items: flex-start;
+    gap: 0.9rem;
+  }
+
+  .controls {
+    align-items: flex-start;
+  }
+
+  .credit {
+    order: 2;
+  }
+}
