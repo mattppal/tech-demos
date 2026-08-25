@@ -13,17 +13,24 @@ bun run dev
 
 ## What's inside
 
-- `CloudField` (Marine Layer), `GatewayFlow` (The Gateway), and `TopoField`
-  (Seven Hills) from `@designcodeio/threeui@0.3.0` — the newest version that
-  clears the 3-day `minimumReleaseAge` gate. Imported via the `./components/*`
-  subpath exports so the rest of the 160-component catalog stays out of the
-  bundle. The heroes are self-contained sandboxed iframes, so no package assets
-  need copying and nothing breaks under the `/threeui/` preview base.
+- `FlowField` (Marine Layer), `GatewayFlow` (The Gateway), and
+  `ConstellationField` (Bay Lights) from `@designcodeio/threeui@0.3.0` — the
+  newest version that clears the 3-day `minimumReleaseAge` gate. Imported via
+  the `./components/*` subpath exports so the rest of the 160-component catalog
+  stays out of the bundle. The heroes are self-contained sandboxed iframes, so
+  no package assets need copying and nothing breaks under the `/threeui/`
+  preview base.
 - Theme presets (Fog / Golden Hour / Night) drive the components'
-  `mode`/`hue`/`saturation`/`brightness` props plus a wrapper CSS filter and
+  `mode`/`saturation`/`brightness` props plus a per-hero wrapper CSS filter and
   color wash. Lighting maps to a brightness multiplier; motion maps to the
-  batch effects' `speed` prop (CloudField has no speed knob, so the control
-  hides there).
+  heroes' `speed` prop.
+- The state is shareable: `?hero=baylights&theme=night&light=marine&motion=drift`.
+- `src/cdn-shim.ts` rewrites the third-party CDN URLs inside the heroes'
+  `srcdoc` iframes (gsap/ScrollTrigger, tailwind play CDN, iconify, Google
+  Fonts, remote decor images) to tiny local stand-ins, so the demo runs fully
+  offline / egress-restricted, boots without waiting on network timeouts, and
+  self-heals a Chromium quirk where a freshly loaded sandboxed iframe can lay
+  out at 0×0.
 
 ## Credits
 
