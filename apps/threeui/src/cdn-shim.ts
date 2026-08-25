@@ -52,6 +52,31 @@ const REGEX_REWRITES: [from: RegExp, to: string][] = [
   [/https:\/\/static\.cloudflareinsights\.com[^"']*/g, "data:text/javascript,"],
 ];
 
+// Chromium (headless and headed, at least under software rendering) sometimes
+// fails to deliver the embedder's size to a freshly (re)loaded sandboxed
+// srcdoc iframe: the inner document lays out at 0x0 — the canvas keeps
+// painting into its buffer but nothing shows. A display:none -> restore
+// round-trip on the iframe element reliably re-establishes the child layout
+// (a 1px resize does not). The iframe can't be reached from outside (opaque
+// origin), so inject a watchdog that reports the collapse via postMessage.
+const WATCHDOG_MARKER = "data-sf-watchdog";
+const WATCHDOG = `<script ${WATCHDOG_MARKER}>
+(function () {
+  var tries = 0;
+  function check() {
+    tries += 1;
+    var rect = document.documentElement.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      parent.postMessage({ type: "sf-viewport-collapsed" }, "*");
+      if (tries < 10) setTimeout(check, 500);
+    } else if (tries < 4) {
+      setTimeout(check, 700);
+    }
+  }
+  setTimeout(check, 400);
+})();
+<\/script>`;
+
 function patchSrcdoc(html: string): string {
   for (const [from, to] of REWRITES) {
     html = html.split(from).join(to);
@@ -59,8 +84,23 @@ function patchSrcdoc(html: string): string {
   for (const [from, to] of REGEX_REWRITES) {
     html = html.replace(from, to);
   }
+  if (!html.includes(WATCHDOG_MARKER)) {
+    html = html.replace(/<\/body>/i, `${WATCHDOG}</body>`);
+  }
   return html;
 }
+
+window.addEventListener("message", (event) => {
+  if (!event.data || event.data.type !== "sf-viewport-collapsed") return;
+  for (const frame of document.querySelectorAll<HTMLIFrameElement>("iframe[srcdoc]")) {
+    const previous = frame.style.display;
+    frame.style.display = "none";
+    void frame.getBoundingClientRect().width;
+    requestAnimationFrame(() => {
+      frame.style.display = previous;
+    });
+  }
+});
 
 // React sets srcDoc through setAttribute; patch the property setter too in
 // case anything assigns it directly.
@@ -87,7 +127,9 @@ if (srcdocDescriptor?.set) {
 // (the rewrite triggers one reload of that iframe's document).
 const needsPatch = (html: string | null): html is string =>
   !!html &&
-  (REWRITES.some(([from]) => html.includes(from)) || REGEX_REWRITES.some(([from]) => new RegExp(from.source).test(html)));
+  (REWRITES.some(([from]) => html.includes(from)) ||
+    REGEX_REWRITES.some(([from]) => new RegExp(from.source).test(html)) ||
+    !html.includes(WATCHDOG_MARKER));
 
 function patchIframeElement(el: Element) {
   if (el.tagName !== "IFRAME") return;
