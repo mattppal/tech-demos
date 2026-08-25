@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { CloudField } from "@designcodeio/threeui/components/CloudField";
+import { useEffect, useState } from "react";
+import { FlowField } from "@designcodeio/threeui/components/FlowField";
 import { GatewayFlow } from "@designcodeio/threeui/components/GatewayFlow";
-import { TopoField } from "@designcodeio/threeui/components/TopoField";
+import { ConstellationField } from "@designcodeio/threeui/components/ConstellationField";
 
-type HeroId = "cloud" | "gateway" | "topo";
+type HeroId = "marine" | "gateway" | "baylights";
 type ThemeId = "fog" | "golden" | "night";
 type LightingId = "marine" | "clearing";
 type MotionId = "still" | "drift" | "alive";
@@ -15,7 +15,18 @@ type HeroProps = {
   brightness?: number;
   speed?: number;
   opacity?: number;
+  size?: number;
+  density?: number;
+  strokeWidth?: number;
   style?: React.CSSProperties;
+};
+
+type ThemeLook = {
+  mode: "light" | "dark";
+  hue: number;
+  saturation: number;
+  brightness: number;
+  filter: string;
 };
 
 const HEROES: {
@@ -24,26 +35,46 @@ const HEROES: {
   component: string;
   Hero: (props: HeroProps) => React.JSX.Element;
   hasMotion: boolean;
+  // Extra ThreeUI knobs: the dashed/thin sources need thicker strokes to
+  // stay cinematic on devicePixelRatio-1 screens.
+  props?: HeroProps;
+  // Per-theme wrapper-filter overrides. FlowField has no light mode, so the
+  // Fog preset inverts it into a pale marine layer instead.
+  filterByTheme?: Partial<Record<ThemeId, string>>;
 }[] = [
-  { id: "cloud", label: "Marine Layer", component: "CloudField", Hero: CloudField, hasMotion: false },
-  { id: "gateway", label: "The Gateway", component: "GatewayFlow", Hero: GatewayFlow, hasMotion: true },
-  { id: "topo", label: "Seven Hills", component: "TopoField", Hero: TopoField, hasMotion: true },
+  {
+    id: "marine",
+    label: "Marine Layer",
+    component: "FlowField",
+    Hero: FlowField,
+    hasMotion: true,
+    filterByTheme: {
+      fog: "invert(1) saturate(0.4) contrast(0.88) brightness(1.04)",
+      night: "sepia(0.55) saturate(2.2) hue-rotate(175deg) brightness(1.9)",
+    },
+  },
+  {
+    id: "gateway",
+    label: "The Gateway",
+    component: "GatewayFlow",
+    Hero: GatewayFlow,
+    hasMotion: true,
+    props: { size: 2.5 },
+  },
+  {
+    id: "baylights",
+    label: "Bay Lights",
+    component: "ConstellationField",
+    Hero: ConstellationField,
+    hasMotion: true,
+    props: { size: 1.5, strokeWidth: 2 },
+  },
 ];
 
 // Each preset drives the ThreeUI props (mode/hue/saturation/brightness) plus a
 // wrapper-level CSS filter and color wash, since some heroes render close to
 // grayscale and need sepia/hue shifts applied outside the sandboxed iframe.
-const THEMES: Record<
-  ThemeId,
-  {
-    label: string;
-    mode: "light" | "dark";
-    hue: number;
-    saturation: number;
-    brightness: number;
-    filter: string;
-  }
-> = {
+const THEMES: Record<ThemeId, ThemeLook & { label: string }> = {
   fog: {
     label: "Fog",
     mode: "light",
@@ -64,9 +95,9 @@ const THEMES: Record<
     label: "Night",
     mode: "dark",
     hue: 0,
-    saturation: 0.9,
-    brightness: 0.85,
-    filter: "sepia(0.35) saturate(1.5) hue-rotate(170deg) brightness(0.9)",
+    saturation: 1,
+    brightness: 1.15,
+    filter: "sepia(0.3) saturate(1.7) hue-rotate(175deg) brightness(1.3)",
   },
 };
 
@@ -80,6 +111,20 @@ const MOTION: Record<MotionId, { label: string; speed: number }> = {
   drift: { label: "Drift", speed: 0.7 },
   alive: { label: "Alive", speed: 1.8 },
 };
+
+// Initial state is shareable via ?hero=&theme=&light=&motion=; invalid or
+// missing values fall back to the defaults.
+function fromParams() {
+  const p = new URLSearchParams(window.location.search);
+  const pick = <T extends string>(value: string | null, all: readonly T[], fallback: T): T =>
+    all.includes(value as T) ? (value as T) : fallback;
+  return {
+    hero: pick<HeroId>(p.get("hero"), ["marine", "gateway", "baylights"], "gateway"),
+    theme: pick<ThemeId>(p.get("theme"), ["fog", "golden", "night"], "fog"),
+    light: pick<LightingId>(p.get("light"), ["marine", "clearing"], "marine"),
+    motion: pick<MotionId>(p.get("motion"), ["still", "drift", "alive"], "drift"),
+  };
+}
 
 function Segmented<T extends string>({
   legend,
@@ -113,30 +158,43 @@ function Segmented<T extends string>({
 }
 
 export default function App() {
-  const [heroId, setHeroId] = useState<HeroId>("gateway");
-  const [themeId, setThemeId] = useState<ThemeId>("fog");
-  const [lightingId, setLightingId] = useState<LightingId>("marine");
-  const [motionId, setMotionId] = useState<MotionId>("drift");
+  const [initial] = useState(fromParams);
+  const [heroId, setHeroId] = useState<HeroId>(initial.hero);
+  const [themeId, setThemeId] = useState<ThemeId>(initial.theme);
+  const [lightingId, setLightingId] = useState<LightingId>(initial.light);
+  const [motionId, setMotionId] = useState<MotionId>(initial.motion);
 
   const hero = HEROES.find((h) => h.id === heroId)!;
-  const theme = THEMES[themeId];
+  const look = THEMES[themeId];
   const { Hero } = hero;
+
+  useEffect(() => {
+    const p = new URLSearchParams();
+    p.set("hero", heroId);
+    p.set("theme", themeId);
+    p.set("light", lightingId);
+    p.set("motion", motionId);
+    window.history.replaceState(null, "", `?${p}`);
+  }, [heroId, themeId, lightingId, motionId]);
 
   return (
     <div className="stage" data-theme={themeId}>
       <div
         className="hero-layer"
-        // Remount (and fade back in) when the srcdoc actually changes:
-        // hero swap or light/dark mode swap. Filter tweaks stay live.
-        key={`${heroId}-${theme.mode}`}
-        style={{ filter: theme.filter }}
+        // Remount (and fade back in) when the hero or the light/dark source
+        // document changes: in-place srcdoc swaps can leave a stale document
+        // on screen, while a fresh element always boots clean. Lighting and
+        // motion changes touch only CSS filters / postMessage, no remount.
+        key={`${heroId}-${look.mode}`}
+        style={{ filter: hero.filterByTheme?.[themeId] ?? look.filter }}
       >
         <Hero
-          mode={theme.mode}
-          hue={theme.hue}
-          saturation={theme.saturation}
-          brightness={theme.brightness * LIGHTING[lightingId].brightness}
+          mode={look.mode}
+          hue={look.hue}
+          saturation={look.saturation}
+          brightness={look.brightness * LIGHTING[lightingId].brightness}
           {...(hero.hasMotion ? { speed: MOTION[motionId].speed } : {})}
+          {...hero.props}
         />
       </div>
       <div className="wash" aria-hidden="true" />
