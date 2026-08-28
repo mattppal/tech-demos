@@ -1,0 +1,7 @@
+// Cloudflare Pages config for the whole monorepo.
+// ONE Pages project serves every demo at /<slug>/ (see AGENTS.md "Previews").
+{
+  "name": "tech-demos",
+  "compatibility_date": "2026-08-01",
+  "pages_build_output_dir": "dist"
+}
