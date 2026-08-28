@@ -2,6 +2,13 @@
   "proposed": [],
   "built": [
     {
+      "id": "2085841772211843502",
+      "url": "https://x.com/alaymanguy/status/2085841772211843502",
+      "tech": "@basementstudio/shader-lab",
+      "slug": "shader-lab",
+      "status": "built"
+    },
+    {
       "id": "2090950343744266383",
       "slug": "threeui",
       "status": "built",
