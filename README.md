@@ -12,7 +12,7 @@ Each approved pick lands as:
 
 | Slug | Status | Notes |
 |------|--------|-------|
-| — | none yet | First picks will land under `apps/<kebab-slug>/` |
+| [`writing-bench`](./apps/writing-bench/) | built | Editorial side-by-side writing benchmarks for Cursor models — cached one-turn harness outputs, animated with generative-loaders |
 
 ## Layout
 
