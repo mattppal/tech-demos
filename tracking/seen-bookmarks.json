@@ -2,6 +2,13 @@
   "proposed": [],
   "built": [
     {
+      "id": "2090950343744266383",
+      "slug": "threeui",
+      "status": "built",
+      "url": "https://x.com/trashh_dev/status/2090950343744266383",
+      "notes": "ThreeUI Community heroes on a San Francisco palette (fog / International Orange / bay light); quotes MengTo's launch 2090817187900780961"
+    },
+    {
       "slug": "cobe",
       "title": "cobe — 5KB WebGL globe (Shu Ding)",
       "url": "https://github.com/shuding/cobe",
